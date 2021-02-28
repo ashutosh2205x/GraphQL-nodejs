@@ -3,7 +3,8 @@ const bodyparser = require("body-parser");
 const { buildSchema } = require("graphql");
 const { graphqlHTTP } = require("express-graphql");
 const app = express();
-
+const mongoose = require("mongoose");
+const { MONGO_URL } = require("./keys");
 const events = [];
 app.use(bodyparser.json());
 
@@ -50,14 +51,22 @@ app.use(
           price: +args.eventInput.price,
           date: args.eventInput.date,
         };
-        console.log(args.eventInput)
+        console.log(args.eventInput);
         events.push(event);
-        return event
+        return event;
       },
     },
     graphiql: true,
   })
 );
+
+mongoose
+  .connect(MONGO_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then((res) => console.log("connnected"))
+  .catch((err) => console.log("err", err));
 
 app.listen(3000, () => {
   console.log("started");
