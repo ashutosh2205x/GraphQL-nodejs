@@ -2,10 +2,13 @@ const express = require("express");
 const bodyparser = require("body-parser");
 const { buildSchema } = require("graphql");
 const { graphqlHTTP } = require("express-graphql");
-const app = express();
 const mongoose = require("mongoose");
+const app = express();
+// comps
 const { MONGO_URL } = require("./keys");
-const events = [];
+const Event = require("./models/event");
+
+// start
 app.use(bodyparser.json());
 
 app.use(
@@ -41,19 +44,34 @@ app.use(
     rootValue: {
       //all resolvers functions
       events: () => {
-        return events;
+        return Event.find()
+          .then((events) => {
+            return events.map((event) => {
+              return { ...event._doc };
+            });
+          })
+          .catch((err) => {
+            throw err;
+          });
       },
       createEvent: (args) => {
-        const event = {
-          _id: Math.random().toString(),
+        const event = new Event({
           title: args.eventInput.title,
           description: args.eventInput.description,
           price: +args.eventInput.price,
-          date: args.eventInput.date,
-        };
+          date: new Date(args.eventInput.date),
+        });
         console.log(args.eventInput);
-        events.push(event);
-        return event;
+        return event
+          .save()
+          .then((res) => {
+            console.log(res);
+            return { ...event._doc };
+          })
+          .catch((err) => {
+            console.log(err);
+            throw err;
+          });
       },
     },
     graphiql: true,
@@ -65,9 +83,10 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then((res) => console.log("connnected"))
-  .catch((err) => console.log("err", err));
-
-app.listen(3000, () => {
-  console.log("started");
-});
+  .then(() => {
+    console.log("connnected"),
+      app.listen(3000, () => {
+        console.log("started");
+      });
+  })
+  .catch((err) => console.log("err==>", err));
