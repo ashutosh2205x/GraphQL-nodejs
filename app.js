@@ -13,6 +13,16 @@ const User = require("./models/user");
 // start
 app.use(bodyparser.json());
 
+const userEvents = (userid) => {
+  return User.findById(userid)
+    .then((result) => {
+      return { ...result._doc, id: result.id };
+    })
+    .catch((err) => {
+      throw err;
+    });
+};
+
 app.use(
   "/graphql",
   graphqlHTTP({
@@ -23,6 +33,8 @@ app.use(
         description : String!
         price: Float!
         date : String!
+        creator : User!
+        
     }
     input EventInput {
         title : String!
@@ -35,7 +47,9 @@ app.use(
       _uid : ID!
       email : String!
       password : String
+      createdEvents : [Event!]
     }
+    
     input Userinput {
       email : String!
       password: String!
@@ -61,7 +75,10 @@ app.use(
         return Event.find()
           .then((events) => {
             return events.map((event) => {
-              return { ...event._doc };
+              return {
+                ...event._doc,
+                creator: userEvents.bind(this, event._doc.creator),
+              };
             });
           })
           .catch((err) => {
@@ -77,23 +94,23 @@ app.use(
           creator: "603b07afd143192b14c6a16f",
         });
         var temp_event;
-        console.log('events args==>',args.eventInput);
+        console.log("events args==>", args.eventInput);
         return event
           .save()
           .then((res) => {
             temp_event = { ...event._doc };
-            return User.findById("603b07afd143192b14c6a16f")
-           
+            return User.findById("603b07afd143192b14c6a16f");
           })
           .then((user) => {
-            console.log('user', user);
+            console.log("user", user);
             if (!user) {
               throw new Error("No  already exists");
             }
-            user.createdEvents.push(event)
-            return user.save()
-          }).then(result=>{
-            return temp_event
+            user.createdEvents.push(event);
+            return user.save();
+          })
+          .then((result) => {
+            return temp_event;
           })
           .catch((err) => {
             console.log(err);
@@ -113,7 +130,15 @@ app.use(
               email: args.userinput.email,
               password: hashedVal,
             });
-            return user.save();
+
+            return user
+              .save()
+              .then((result) => {
+                return { ...result._doc, password: null, id: result.id };
+              })
+              .catch((err) => {
+                throw err;
+              });
           })
           .then((result) => {
             return { ...result._doc };
