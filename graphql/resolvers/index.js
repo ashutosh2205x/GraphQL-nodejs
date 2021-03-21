@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 
 const Event = require("../../models/event");
 const User = require("../..//models/user");
+const Booking = require("../..//models/booking");
 
 module.exports = {
   //all resolvers functions
@@ -19,6 +20,50 @@ module.exports = {
         throw err;
       });
   },
+  //BOOKINGS
+  booking: async () => {
+    try {
+      console.log("in try");
+      const bookings = await Booking.find();
+      return bookings.map((booking) => {
+        console.log("booking,", booking._doc);
+        return {
+          ...booking._doc,
+          _id: booking.id,
+          user: userEvents.bind(this, booking._doc.user),
+          event: SingleEvent.bind(this, booking._doc.event),
+          createdAt: new Date(booking.createdAt).toDateString(),
+          updatedAt: new Date(booking.updatedAt).toDateString(),
+        };
+      });
+    } catch (err) {
+      console.log("in catch");
+      throw err;
+    }
+  },
+
+  bookEvent: async (args) => {
+    try {
+      const fetchedEvent = await Event.findOne({ _id: args.eventId });
+      const booking = new Booking({
+        user: "603b07afd143192b14c6a16f",
+        event: fetchedEvent,
+      });
+      const result = await booking.save();
+      return {
+        ...result._doc,
+        _id: result.id,
+        user: userEvents.bind(this, booking._doc.user),
+        event: SingleEvent.bind(this, booking._doc.event),
+        createdAt: new Date(result.createdAt).toDateString(),
+        updatedAt: new Date(result.updatedAt).toDateString(),
+      };
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  // EVENTS
   createEvent: (args) => {
     const event = new Event({
       title: args.eventInput.title,
@@ -55,6 +100,8 @@ module.exports = {
         throw err;
       });
   },
+
+  //USERS
   createUser: (args) => {
     return User.findOne({ email: args.userinput.email })
       .then((user) => {
@@ -87,6 +134,8 @@ module.exports = {
   },
 };
 
+//secondary resolvers
+
 const userEvents = (userid) => {
   return User.findById(userid)
     .then((result) => {
@@ -115,4 +164,17 @@ const FindEvents = (eventIds) => {
     .catch((er) => {
       throw er;
     });
+};
+
+const SingleEvent = async (eventId) => {
+  try {
+    const event = await Event.findById(eventId);
+    return {
+      ...event._doc,
+      _id: event.id,
+      creator: userEvents.bind(this, event.creator),
+    };
+  } catch (err) {
+    throw err;
+  }
 };
